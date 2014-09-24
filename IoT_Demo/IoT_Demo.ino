@@ -202,7 +202,9 @@ bool getTempHumi()
 /****************************************************************************
  * Wi-Fi Initialize
  ****************************************************************************/
-void wifi_init()
+
+
+bool wifi_init()
 {
     LWiFi.begin();
 
@@ -211,17 +213,31 @@ void wifi_init()
     Serial.println(WIFI_AP);
 #endif
 
-    int cntout = 0;
+
+    unsigned long timer_w = millis();
+    
     while (0 == LWiFi.connect(WIFI_AP, LWiFiLoginInfo(WIFI_AUTH, WIFI_PASSWORD)))
     {
-        delay(1000);
-        cntout++;
-        if(cntout>60)return;
+        if(millis() - timer_w > 30000)
+        {
+#if DBG
+            Serial.println("\r\nConnect wo AP Fail, Time OUT....");
+#endif
+            return false;
+        }
+        
+        checkSms();
+#if DBG
+        Serial.print(".");
+#endif
     }
-
+#if DBG
+    Serial.println();
+#endif
     delay(1000);
+    
+    return true;
 }
-
 
 /****************************************************************************
  * Oled
@@ -324,30 +340,46 @@ void setup()
     
     get_ssid_key();
     tempInit();
-
-    debug_oled(2, "CONNECT...");
     
-    wifi_init();
-#if DBG
-    Serial.println("Wifi Init Ok");
-#endif
-    debug_oled(3, "CONNECTED!");
-    delay(1000);
-    // begin to init gsm module
     while(!LSMS.ready())
     {
         delay(1000);
     }
-    debug_oled(4, "SIM READY");
-    
+
 #if DBG
     Serial.println("SIM ready for work!");
-    Serial.println("Init OK..........");
 #endif
 
-    debug_oled(6, "--INIT OK---");
+    debug_oled(2, "SIM READY");
     
-    delay(5000);
+    
+
+    debug_oled(3, "CONNECT...");
+    
+    if(wifi_init())
+    {
+
+        debug_oled(4, "CONNECTED!");
+        debug_oled(6, "--INIT OK---");
+#if DBG
+        Serial.println("Wifi Init Ok");
+        Serial.println("Init OK..........");
+#endif
+        delay(1000);
+    }
+    else
+    {
+#if DBG
+        Serial.println("Wifi Init Fail");
+        Serial.println("Init Fail...........");
+#endif
+        debug_oled(4, "CONNECT FAIL");  
+        debug_oled(6, "-WiFi Fail-");
+        
+        delay(5000);
+    }
+
+    
 }
 
 
@@ -372,7 +404,7 @@ void checkSms()
 
     static unsigned long time_sms = millis();
 
-    if(millis()-time_sms < 1000)return;
+    if(millis()-time_sms < 500)return;
     time_sms = millis();
 
     char p_num[20];
