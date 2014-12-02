@@ -15,8 +15,9 @@
 #include "OLED_96x96_Suli.h"
 #include "DHT.h"
 
-#define DBG     1               // If Debug
+#define DBG             1               // If Debug
 
+#define WIFI_EN         0
 
 SeeedOLED oled;
 
@@ -206,6 +207,8 @@ bool getTempHumi()
 
 bool wifi_init()
 {
+
+#if WIFI_EN
     LWiFi.begin();
 
 #if DBG
@@ -237,6 +240,10 @@ bool wifi_init()
     delay(1000);
     
     return true;
+    
+#else
+    return true;
+#endif
 }
 
 /****************************************************************************
@@ -353,7 +360,7 @@ void setup()
     debug_oled(2, "SIM READY");
     
     
-
+#if WIFI_EN
     debug_oled(3, "CONNECT...");
     
     if(wifi_init())
@@ -378,7 +385,10 @@ void setup()
         
         delay(5000);
     }
-
+#else
+    debug_oled(6, "--INIT OK---");
+    Serial.println("Init OK..........");
+#endif  // end of WIFI_EN
     
 }
 
@@ -460,6 +470,8 @@ void checkSms()
  ****************************************************************************/
 void sendXively()
 {
+
+#if WIFI_EN
     static unsigned long timer_sx = millis();
 
     /*
@@ -509,6 +521,7 @@ void sendXively()
 
     which_to_send++;
     which_to_send = (which_to_send>3) ? 0 : which_to_send;
+#endif
 
 }
 
